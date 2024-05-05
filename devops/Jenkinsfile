@@ -1,0 +1,40 @@
+pipeline {
+    agent {
+        kubernetes {
+          inheritFrom 'jenkins-buildkit'
+          defaultContainer 'jenkins-buildkit'
+        }
+    }
+
+    parameters {
+      string(
+        name: 'registry',
+        defaultValue: 'registry.example.com:5000',
+        description: 'Container Registry'
+      )
+      string(
+        name: 'image_name',
+        defaultValue: 'dbt-postgres',
+        description: 'Image Name'
+      )
+      string(
+        name: 'dbt_version',
+        defaultValue: '1.7.13',
+        description: 'DBT Core version'
+      )
+    }
+    
+    stages {
+        stage('Pull & push image') {
+            steps {
+                container('jenkins-buildkit') {
+                    sh """
+                        buildctl build --frontend dockerfile.v0 --local context=. --no-cache --opt build-arg:IMAGE_NAME=${params.image_name} --opt build-arg:DBT_VERSION=${params.dbt_version} --local dockerfile=. --output type=image,name=${params.registry}/${params.image_name}:${params.dbt_version},push=true
+                    """
+                 }
+            }
+        }
+    }
+}
+
+
